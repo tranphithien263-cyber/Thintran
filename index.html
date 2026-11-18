@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOOL THIÊN TRẦN</title>
+<style>
+  body{background:#050507;color:#cfcfcf;font-family:monospace;padding:20px;margin:0}
+  #hexbg{position:fixed;inset:0;z-index:0;color:#ff2d55;opacity:.07;font-size:11px;line-height:1.35;white-space:pre;overflow:hidden;pointer-events:none}
+  .wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto}
+  h1{color:#ff2d55;font-size:22px;letter-spacing:4px;margin:0 0 4px;text-shadow:0 0 10px rgba(255,45,85,.6)}
+  .sub{color:#5a5a5a;font-size:11px;margin-bottom:18px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{padding:10px 22px;background:#0d0d0f;border:1px solid #222;color:#666;cursor:pointer;font-family:inherit;font-size:13px}
+  .tab.active{background:#ff2d55;color:#000;border-color:#ff2d55;font-weight:bold}
+  .panel{display:none}
+  .panel.active{display:block}
+  .dz{border:2px dashed #222;padding:40px;text-align:center;color:#555;cursor:pointer;background:#08080a;margin-bottom:16px}
+  .dz:hover,.dz.drag{border-color:#ff2d55;color:#ff2d55;background:#12030a}
+  .dz input{display:none}
+  .info{background:#0d0d0f;padding:12px;margin-bottom:16px;border-left:3px solid #ff2d55;font-size:12px;color:#aaa}
+  .info span{color:#ff2d55}
+  .row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  button{padding:8px 16px;background:#0d0d0f;border:1px solid #222;color:#cfcfcf;cursor:pointer;font-family:inherit;font-size:12px}
+  button:hover{border-color:#ff2d55;color:#ff2d55}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  .viewer{background:#000;border:1px solid #222;padding:12px;height:400px;overflow:auto;font-size:12px;line-height:1.5;white-space:pre;color:#888}
+  .viewer .addr{color:#333}
+  .viewer .hex{color:#4af}
+  .viewer .ascii{color:#aaa}
+  .viewer .str{color:#3f3}
+  .log{background:#000;border:1px solid #222;padding:12px;height:220px;overflow:auto;font-size:12px;color:#888;margin-top:14px}
+  .log .ok{color:#3f3}
+  .log .err{color:#ff2d55}
+  .log .warn{color:#fa3}
+  .label{margin:18px 0 10px;color:#ff2d55;font-size:12px;letter-spacing:2px;text-transform:uppercase}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+  .sq{aspect-ratio:1/1;padding:10px;background:#0d0d0f;border:1px solid #222;color:#cfcfcf;cursor:pointer;font-family:inherit;font-size:11px;line-height:1.35;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  .sq:hover{border-color:#ff2d55;color:#ff2d55}
+  .sq:disabled{opacity:.3;cursor:not-allowed}
+  .sq .i{font-size:18px;margin-bottom:6px}
+  .sq .l{font-weight:bold}
+  .sq .s{font-size:9px;color:#666;margin-top:4px}
+</style>
+</head>
+<body>
+
+<div id="hexbg"></div>
+
+<div class="wrap">
+  <h1>TOOL THIÊN TRẦN</h1>
+  <div class="sub">// vex build // upload · view · inject</div>
+
+  <div class="tabs">
+    <div class="tab active" id="t1" onclick="switchTab(1)">tab 1 // xem code</div>
+    <div class="tab" id="t2" onclick="switchTab(2)">tab 2 // bơm code</div>
+  </div>
+
+  <div class="panel active" id="p1">
+    <div class="dz" id="dz1">
+      <input type="file" id="f1" accept=".bin,.so,.dll,.exe">
+      <div>drop .bin / .so hoặc click // max 100MB</div>
+    </div>
+    <div class="info" id="i1" style="display:none"></div>
+    <div class="row">
+      <button onclick="viewAs('hex')">hex view</button>
+      <button onclick="viewAs('ascii')">ascii</button>
+      <button onclick="viewAs('strings')">strings</button>
+      <button id="dl1" onclick="dlRaw()" disabled>download raw</button>
+    </div>
+    <div class="viewer" id="v1">// chưa có file. upload đi nerd.</div>
+  </div>
+
+  <div class="panel" id="p2">
+    <div class="dz" id="dz2">
+      <input type="file" id="f2" accept=".bin,.so,.dll,.exe">
+      <div>drop file để bơm code // .bin / .so</div>
+    </div>
+    <div class="info" id="i2" style="display:none"></div>
+
+    <div class="label">// chọn kiểu bơm</div>
+    <div class="grid">
+      <button class="sq" id="b1" onclick="doBelly()" disabled>
+        <div class="i">⌖</div><div class="l">bơm code</div><div class="s">aim bụng</div>
+      </button>
+      <button class="sq" id="b2" onclick="doNeck()" disabled>
+        <div class="i">☰</div><div class="l">bơm aim</div><div class="s">neck nhẹ</div>
+      </button>
+      <button class="sq" id="b3" onclick="doDrag()" disabled>
+        <div class="i">✛</div><div class="l">bơm code</div><div class="s">aim drag</div>
+      </button>
+      <button class="sq" id="b4" onclick="doChest()" disabled>
+        <div class="i">◆</div><div class="l">ghim ngực</div><div class="s">chest pin</div>
+      </button>
+    </div>
+
+    <div class="row" style="margin-top:18px">
+      <button id="dl2" onclick="dlPatched()" disabled>download file đã chỉnh sửa</button>
+    </div>
+    <div class="log" id="log">// log sẽ hiện ở đây</div>
+  </div>
+</div>
+
+<script>
+/* ===== nền hex ===== */
+(function(){
+  var el=document.getElementById('hexbg');
+  var H='0123456789abcdef';
+  var lines=90,cols=80;
+  function rb(){return H.charAt(Math.floor(Math.random()*16))+H.charAt(Math.floor(Math.random()*16));}
+  function mk(){var s='';for(var c=0;c<cols;c++)s+=rb()+' ';return s;}
+  var rows=[];
+  for(var i=0;i<lines;i++)rows.push(mk());
+  el.textContent=rows.join('\n');
+  setInterval(function(){rows.shift();rows.push(mk());el.textContent=rows.join('\n');},90);
+})();
+
+/* ===== state ===== */
+var buf1=null,name1=null,buf2=null,name2=null,patched=null;
+
+/* ===== tab ===== */
+function switchTab(n){
+  document.getElementById('t1').className='tab';
+  document.getElementById('t2').className='tab';
+  document.getElementById('p1').className='panel';
+  document.getElementById('p2').className='panel';
+  document.getElementById('t'+n).className='tab active';
+  document.getElementById('p'+n).className='panel active';
+}
+
+/* ===== upload ===== */
+function wire(dzId,inputId,cb){
+  var dz=document.getElementById(dzId);
+  var input=document.getElementById(inputId);
+  if(!dz||!input)return;
+  dz.onclick=function(e){if(e.target===input)return;input.click();};
+  input.onchange=function(){if(this.files&&this.files[0])cb(this.files[0]);};
+  dz.ondragover=function(e){e.preventDefault();dz.className='dz drag';};
+  dz.ondragleave=function(){dz.className='dz';};
+  dz.ondrop=function(e){
+    e.preventDefault();dz.className='dz';
+    if(e.dataTransfer.files&&e.dataTransfer.files[0])cb(e.dataTransfer.files[0]);
+  };
+}
+
+wire('dz1','f1',function(f){
+  if(f.size>100*1024*1024){document.getElementById('v1').textContent='file > 100MB';return;}
+  var r=new FileReader();
+  r.onload=function(){
+    buf1=new Uint8Array(r.result);
+    name1=f.name;
+    var i1=document.getElementById('i1');
+    i1.style.display='block';
+    i1.innerHTML='<span>'+f.name+'</span> // '+f.size+' bytes';
+    viewAs('hex');
+    document.getElementById('dl1').disabled=false;
+  };
+  r.readAsArrayBuffer(f);
+});
+
+wire('dz2','f2',function(f){
+  if(f.size>100*1024*1024){log('file > 100MB','err');return;}
+  var r=new FileReader();
+  r.onload=function(){
+    buf2=new Uint8Array(r.result);
+    name2=f.name;
+    patched=null;
+    var i2=document.getElementById('i2');
+    i2.style.display='block';
+    i2.innerHTML='<span>'+f.name+'</span> // '+f.size+' bytes';
+    document.getElementById('b1').disabled=false;
+    document.getElementById('b2').disabled=false;
+    document.getElementById('b3').disabled=false;
+    document.getElementById('b4').disabled=false;
+    document.getElementById('dl2').disabled=true;
+    log('loaded '+f.name+' // '+f.size+' bytes','ok');
+  };
+  r.readAsArrayBuffer(f);
+});
+
+/* ===== viewer ===== */
+function viewAs(mode){
+  if(!buf1)return;
+  var el=document.getElementById('v1');
+  var i,c,hex,ascii,addr;
+  if(mode==='hex'){
+    var lines=[];
+    var max=Math.min(buf1.length,100*1024);
+    for(i=0;i<max;i+=16){
+      c=buf1.subarray(i,i+16);
+      hex='';
+      ascii='';
+      for(var k=0;k<c.length;k++){
+        var h=c[k].toString(16);
+        if(h.length<2)h='0'+h;
+        hex+=h+' ';
+        ascii+=(c[k]>=32&&c[k]<127)?String.fromCharCode(c[k]):'.';
+      }
+      while(hex.length<47)hex+=' ';
+      addr=i.toString(16);
+      while(addr.length<8)addr='0'+addr;
+      lines.push('<span class="addr">'+addr+'</span>  <span class="hex">'+hex+'</span>  <span class="ascii">'+ascii.replace(/</g,'&lt;')+'</span>');
+    }
+    el.innerHTML=lines.join('\n');
+  }else if(mode==='ascii'){
+    var out='';
+    var max2=Math.min(buf1.length,200*1024);
+    for(i=0;i<max2;i++){
+      c=buf1[i];
+      out+=(c>=32&&c<127)?String.fromCharCode(c):(c===10?'\n':'·');
+    }
+    el.textContent=out;
+  }else{
+    var arr=[];
+    var cur='',start=0;
+    for(i=0;i<buf1.length;i++){
+      c=buf1[i];
+      if(c>=32&&c<127){if(!cur)start=i;cur+=String.fromCharCode(c);}
+      else{if(cur.length>=4)arr.push({off:start,s:cur});cur='';}
+    }
+    if(cur.length>=4)arr.push({off:start,s:cur});
+    if(!arr.length){el.textContent='// không có string >= 4 ký tự';return;}
+    var html=[];
+    for(i=0;i<arr.length;i++){
+      var off=arr[i].off.toString(16);
+      while(off.length<8)off='0'+off;
+      html.push('<span class="addr">0x'+off+'</span>  <span class="str">'+arr[i].s.replace(/</g,'&lt;')+'</span>');
+    }
+    el.innerHTML=html.join('\n');
+  }
+}
+
+function dlRaw(){if(buf1)dlBlob(buf1,name1);}
+
+/* ===== patch helpers ===== */
+function toBytes(s){
+  var b=new Uint8Array(s.length);
+  for(var i=0;i<s.length;i++)b[i]=s.charCodeAt(i)&0xff;
+  return b;
+}
+
+function find(buf,needle){
+  var out=[];
+  var nl=needle.length;
+  if(!nl)return out;
+  outer:for(var i=0;i<=buf.length-nl;i++){
+    for(var j=0;j<nl;j++){if(buf[i+j]!==needle[j])continue outer;}
+    out.push(i);
+  }
+  return out;
+}
+
+/* swap nhiều rules, token trung gian, giữ size */
+function applySwaps(buf,rules,tokenBase){
+  var out=new Uint8Array(buf);
+  var tokens=[];
+  var i,k;
+  for(i=0;i<rules.length;i++){
+    var tk=new Uint8Array(rules[i].from.length);
+    for(k=0;k<tk.length;k++)tk[k]=tokenBase+i;
+    tokens.push({from:rules[i].from,to:rules[i].to,token:tk,count:0});
+  }
+  // pass1: from -> token
+  for(i=0;i<tokens.length;i++){
+    var hits=find(out,toBytes(tokens[i].from));
+    tokens[i].count=hits.length;
+    for(var h=0;h<hits.length;h++)out.set(tokens[i].token,hits[h]);
+  }
+  // pass2: token -> to
+  for(i=0;i<tokens.length;i++){
+    var hits2=find(out,tokens[i].token);
+    var toB=toBytes(tokens[i].to);
+    var fromLen=tokens[i].from.length;
+    for(var h2=0;h2<hits2.length;h2++){
+      var pos=hits2[h2];
+      var n=Math.min(toB.length,fromLen);
+      for(k=0;k<n;k++)out[pos+k]=toB[k];
+      for(k=n;k<fromLen;k++)out[pos+k]=0;
+    }
+  }
+  return {out:out,tokens:tokens};
+}
+
+function finish(out){
+  patched=out;
+  document.getElementById('dl2').disabled=false;
+  log('in:  '+buf2.length+' bytes','ok');
+  log('out: '+out.length+' bytes','ok');
+  log(out.length===buf2.length?'dung lượng giữ nguyên ✔':'dung lượng lệch','warn');
+}
+
+/* ===== AIM BỤNG ===== */
+function doBelly(){
+  if(!buf2)return log('chưa upload file','err');
+  if(!confirm('chắc chắn bơm code aim bụng?'))return log('hủy','warn');
+  log('bơm code aim bụng...','warn');
+  var r=applySwaps(buf2,[
+    {from:'bone_Neck',to:'bone_Spine'},
+    {from:'bone_Spine',to:'bone_Head'},
+    {from:'bone_Head',to:'bone_Neck'}
+  ],1);
+  var total=0;
+  for(var i=0;i<r.tokens.length;i++){
+    total+=r.tokens[i].count;
+    log(r.tokens[i].from+' -> '+r.tokens[i].to+' : '+r.tokens[i].count+' chỗ',r.tokens[i].count?'ok':'warn');
+  }
+  if(total===0)log('không tìm thấy bone nào','err');
+  else log('tổng '+total+' swap. done.','ok');
+  finish(r.out);
+}
+
+/* ===== AIM NECK NHẸ ===== */
+function doNeck(){
+  if(!buf2)return log('chưa upload file','err');
+  if(!confirm('chắc chắn bơm aim neck nhẹ?'))return log('hủy','warn');
+  log('bơm aim neck nhẹ...','warn');
+  var r=applySwaps(buf2,[
+    {from:'bone_Neck',to:'bone_Head'}
+  ],1);
+  for(var i=0;i<r.tokens.length;i++)
+    log(r.tokens[i].from+' -> '+r.tokens[i].to+' : '+r.tokens[i].count+' chỗ',r.tokens[i].count?'ok':'warn');
+  finish(r.out);
+}
+
+/* ===== AIM DRAG ===== */
+var DRAG_OFF=0x7148;
+var DRAG_BYTES=new Uint8Array([
+  0x31,0x69,0x74,0xEB,0x89,0x29,0xC5,0xBE,
+  0x16,0xDC,0x98,0xBD,0xBB,0x82,0x97,0xB4,
+  0x00,0x00,0x00,0x00,0xBF,0xB2,0x2F,0x3F,
+  0x43,0x32,0x73,0x36,0x66,0x03,0x7B,0x35,
+  0x72,0x1C,0xC7,0x3F,0x72,0x1C,0xC7,0x3F,
+  0x72,0x1C,0xC7,0x3F,0x10,0x00,0x00,0x00,
+  0x62,0x6F,0x6E,0x65,0x5F,0x48,0x65,0x61,
+  0x64,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+  0x23,0xAA,0xA6,0xB8,0xB2,0xF7,0x1F,0xA4
+]);
+
+function doDrag(){
+  if(!buf2)return log('chưa upload file','err');
+  if(!confirm('chắc chắn bơm code aim drag? ghi '+DRAG_BYTES.length+' bytes @ 0x7148'))return log('hủy','warn');
+  log('bơm code aim drag...','warn');
+  var out=new Uint8Array(buf2);
+  var need=DRAG_OFF+DRAG_BYTES.length;
+  if(need>out.length){log('file quá nhỏ: cần '+need+', file có '+out.length,'err');return;}
+  var oldB=out.subarray(DRAG_OFF,DRAG_OFF+DRAG_BYTES.length);
+  log('bytes cũ @0x7148: '+hexStr(oldB),'warn');
+  out.set(DRAG_BYTES,DRAG_OFF);
+  log('đã ghi '+DRAG_BYTES.length+' bytes @0x7148','ok');
+  log('bytes mới @0x7148: '+hexStr(DRAG_BYTES),'ok');
+  finish(out);
+}
+
+/* ===== GHIM NGỰC ===== */
+function doChest(){
+  if(!buf2)return log('chưa upload file','err');
+  if(!confirm('chắc chắn ghim ngực?'))return log('hủy','warn');
+  log('ghim ngực...','warn');
+  var r=applySwaps(buf2,[
+    {from:'bone_Neck',to:'bone_Spine1'},
+    {from:'bone_Spine1',to:'bone_Neck'}
+  ],0x11);
+  var total=0;
+  for(var i=0;i<r.tokens.length;i++){
+    total+=r.tokens[i].count;
+    log(r.tokens[i].from+' -> '+r.tokens[i].to+' : '+r.tokens[i].count+' chỗ',r.tokens[i].count?'ok':'warn');
+  }
+  if(total===0)log('không tìm thấy bone nào','err');
+  else log('tổng '+total+' swap. done.','ok');
+  finish(r.out);
+}
+
+function hexStr(bytes){
+  var s=[];
+  for(var i=0;i<bytes.length;i++){
+    var h=bytes[i].toString(16).toUpperCase();
+    if(h.length<2)h='0'+h;
+    s.push(h);
+  }
+  return s.join(' ');
+}
+
+function dlPatched(){
+  if(!patched)return log('chưa bơm gì','err');
+  dlBlob(patched,name2||'output.bin');
+  log('downloaded '+(name2||'output.bin')+' // '+patched.length+' bytes','ok');
+}
+
+function dlBlob(buf,name){
+  var blob=new Blob([buf],{type:'application/octet-stream'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download=name||'out.bin';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1500);
+}
+
+function log(msg,cls){
+  var el=document.getElementById('log');
+  var line=document.createElement('div');
+  if(cls)line.className=cls;
+  line.textContent='> '+msg;
+  el.appendChild(line);
+  el.scrollTop=el.scrollHeight;
+  while(el.childElementCount>500)el.removeChild(el.firstChild);
+}
+</script>
+</body>
+  </html>
